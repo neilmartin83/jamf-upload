@@ -1,8 +1,8 @@
-# JamfComputerGroupUploader
+# JamfComputerStaticGroupUploader
 
 ## Description
 
-A processor for AutoPkg that will upload a computer group (smart or static) to a Jamf Cloud or on-prem server.
+A processor for AutoPkg that will upload a static computer group to a Jamf Cloud or on-prem server using the Jamf Pro API.
 
 ## Input variables
 
@@ -24,12 +24,16 @@ A processor for AutoPkg that will upload a computer group (smart or static) to a
 - **computergroup_name**:
   - **required**: False
   - **description**: Computer Group name
-- **computergroup_template**:
+- **group_description**:
   - **required**: False
-  - **description**: Path to Computer Group template file
+  - **description**: a description to assign to the Computer Group
 - **replace_group**:
   - **required**: False
   - **description**: overwrite an existing Computer Group if True.
+  - **default**: False
+- **clear_assignments**:
+  - **required**: False
+  - **description**: clear members of an existing Computer Group if True.
   - **default**: False
 - **sleep:**
   - **required:** False
@@ -42,5 +46,5 @@ A processor for AutoPkg that will upload a computer group (smart or static) to a
 
 ## Output variables
 
-- **jamfcomputergroupuploader_summary_result:**
+- **jamfcomputerstaticgroupuploader_summary_result:**
   - **description:** Description of interesting results.
