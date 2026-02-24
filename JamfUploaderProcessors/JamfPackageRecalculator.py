@@ -36,9 +36,7 @@ __all__ = ["JamfPackageRecalculator"]
 
 
 class JamfPackageRecalculator(JamfPackageRecalculatorBase):
-    description = (
-        "A processor for AutoPkg that will force a recalculation of packages on a JCDS"
-    )
+    description = "A processor for AutoPkg that will force a recalculation of cloud distribution point inventory on a Jamf Pro server."
 
     input_variables = {
         "JSS_URL": {

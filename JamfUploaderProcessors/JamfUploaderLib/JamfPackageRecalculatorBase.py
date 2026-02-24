@@ -38,7 +38,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
     def recalculate_packages(self, jamf_url, token):
         """Send a request to recalulate the JCDS packages"""
         # get the JCDS file list
-        object_type = "jcds"
+        object_type = "cloud_distribution_point"
         url = f"{jamf_url}/{self.api_endpoints(object_type)}/refresh-inventory"
 
         request = "POST"
@@ -51,13 +51,13 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
 
         if r.status_code == 204:
             self.output(
-                "JCDS Packages successfully recalculated",
+                "Cloud Distribution Point inventory successfully recalculated",
                 verbose_level=2,
             )
             packages_recalculated = True
         else:
             self.output(
-                f"WARNING: JCDS Packages NOT successfully recalculated (response={r.status_code})",
+                f"WARNING: Cloud Distribution Point inventory NOT successfully recalculated (response={r.status_code})",
                 verbose_level=1,
             )
             packages_recalculated = False
@@ -99,7 +99,7 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
         if "jamfpackagerecalculator_summary_result" in self.env:
             del self.env["jamfpackagerecalculator_summary_result"]
 
-        # recalculate packages on JCDS if the metadata was updated and recalculation requested
+        # recalculate packages on Cloud Distribution Point if the metadata was updated and recalculation requested
         # (only works on Jamf Pro 11.10 or newer)
         if (pkg_api_mode or jcds2_mode) and APLooseVersion(
             jamf_pro_version
@@ -124,9 +124,11 @@ class JamfPackageRecalculatorBase(JamfUploaderBase):
             packages_recalculated = False
 
         # output the summary
-        self.output(f"JCDS Package recalculated? : {packages_recalculated}")
+        self.output(
+            f"Cloud Distribution Point inventory recalculated? : {packages_recalculated}"
+        )
         self.env["jamfpackagerecalculator_summary_result"] = {
-            "summary_text": "JCDS package recalculation resuilt.",
+            "summary_text": "Cloud Distribution Point inventory recalculation result.",
             "report_fields": ["packages_recalculated"],
             "data": {
                 "packages_recalculated": str(packages_recalculated),

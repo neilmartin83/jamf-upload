@@ -2,7 +2,7 @@
 
 ## Description
 
-A processor for AutoPkg that will recalculate the JCDS packages endpoint.
+A processor for AutoPkg that will recalculate the cloud ditribution point inventory.
 
 ## Input variables
 

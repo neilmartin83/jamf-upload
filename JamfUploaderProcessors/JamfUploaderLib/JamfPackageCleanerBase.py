@@ -70,15 +70,15 @@ class JamfPackageCleanerBase(JamfUploaderBase):
 
         self.output("Deleting package...")
 
-        object_type = "package"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        object_type = "package_v1"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
 
         count = 0
         while True:
             count += 1
             self.output(f"Package delete attempt {count}", verbose_level=2)
             request = "DELETE"
-            r = self.curl(api_type="classic", request=request, url=url, token=token)
+            r = self.curl(api_type="jpapi", request=request, url=url, token=token)
 
             # check HTTP response
             if self.status_check(r, "Package", object_id, request) == "break":
@@ -210,17 +210,19 @@ class JamfPackageCleanerBase(JamfUploaderBase):
             raise ProcessorError("ERROR: Jamf Pro URL not supplied")
 
         # check for existing
-        object_type = "package"
+        object_type = "package_v1"
         url = f"{jamf_url}/{self.api_endpoints(object_type)}"
-        r = self.curl(api_type="classic", request="GET", url=url, token=token)
+        r = self.curl(api_type="jpapi", request="GET", url=url, token=token)
         if isinstance(r.output, dict):
-            jamf_packages = r.output["packages"]
+            jamf_packages = r.output["results"]
         else:
-            jamf_packages = json.loads(r.output)["packages"]
+            jamf_packages = json.loads(r.output)["results"]
 
         # Find packages that match the name pattern
         found_packages = [
-            item for item in jamf_packages if item["name"].startswith(pkg_name_match)
+            item
+            for item in jamf_packages
+            if item["packageName"].startswith(pkg_name_match)
         ]
         found_packages = sorted(
             found_packages, key=lambda item: item["id"], reverse=True
@@ -254,10 +256,12 @@ class JamfPackageCleanerBase(JamfUploaderBase):
         )
 
         for package in packages_to_keep:
-            self.output(f"✅ {package['name']}", verbose_level=2)
+            self.output(f"✅ {package['packageName']}", verbose_level=2)
 
         for package in packages_to_delete:
-            self.output(f"❌ {package['name']} (will be deleted)", verbose_level=2)
+            self.output(
+                f"❌ {package['packageName']} (will be deleted)", verbose_level=2
+            )
 
         # If performing a dry_run, print intentions and abort.
         if dry_run:
@@ -287,7 +291,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                 token=token,
                 max_tries=max_tries,
             )
-            self.output(f"Deleting {package['name']}", verbose_level=2)
+            self.output(f"Deleting {package['packageName']}", verbose_level=2)
 
             # Process for SMB shares if defined
             if len(smb_shares) > 0:
@@ -295,7 +299,7 @@ class JamfPackageCleanerBase(JamfUploaderBase):
                     "Number of File Share DPs: " + str(len(smb_shares)),
                     verbose_level=2,
                 )
-            pkg_name = package["name"]
+            pkg_name = package["packageName"]
             for smb_share in smb_shares:
                 smb_url, smb_user, smb_password = (
                     smb_share[0],
