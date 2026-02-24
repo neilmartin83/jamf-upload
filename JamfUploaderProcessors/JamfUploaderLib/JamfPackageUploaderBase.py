@@ -322,29 +322,20 @@ class JamfPackageUploaderBase(JamfUploaderBase):
         note that it is possible to have more than one with the same name
         which could mess things up"""
 
-        object_type = "package"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/name/{quote(pkg_name)}"
-
-        request = "GET"
-        r = self.curl(
-            api_type="classic",
-            request=request,
-            url=url,
+        object_type = "package_v1"
+        filter_name = "packageName"
+        object_id = self.get_api_object_id_from_name(
+            jamf_url,
+            object_type=object_type,
+            object_name=pkg_name,
             token=token,
+            filter_name=filter_name,
         )
 
-        if r.status_code == 200:
-            if isinstance(r.output, dict):
-                obj = r.output
-            else:
-                obj = json.loads(r.output)
-            try:
-                object_id = str(obj["package"]["id"])
-            except KeyError:
-                object_id = "-1"
+        if object_id:
+            return str(object_id)
         else:
-            object_id = "-1"
-        return object_id
+            return "-1"
 
     def get_category_id(self, jamf_url, category_name, token=""):
         """Get the category ID from the name, or abort if ID not found"""
@@ -364,7 +355,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
             self.output(f"Category '{category_name}' not found")
             raise ProcessorError("Supplied package category does not exist")
 
-    def update_pkg_metadata_api(  # pylint: disable=too-many-arguments, too-many-locals
+    def update_pkg_metadata(  # pylint: disable=too-many-arguments, too-many-locals
         self,
         jamf_url,
         pkg_name,
@@ -825,7 +816,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 f"Updating package metadata for {pkg_id}",
                 verbose_level=1,
             )
-            self.update_pkg_metadata_api(
+            self.update_pkg_metadata(
                 jamf_url,
                 pkg_name,
                 pkg_display_name,
@@ -846,7 +837,7 @@ class JamfPackageUploaderBase(JamfUploaderBase):
                 "Creating package metadata",
                 verbose_level=1,
             )
-            object_id = self.update_pkg_metadata_api(
+            object_id = self.update_pkg_metadata(
                 jamf_url,
                 pkg_name,
                 pkg_display_name,
