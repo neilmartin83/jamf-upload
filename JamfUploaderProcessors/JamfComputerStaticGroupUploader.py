@@ -1,7 +1,7 @@
 #!/usr/local/autopkg/python
 
 """
-Copyright 2023 Graham Pugh, Henrik Engström
+Copyright 2026 Graham Pugh
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,8 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 NOTES:
-This processor was written by Henrik Engström based on other JamfUploader processors
-All functions are in JamfUploaderLib/JamfPackageCleanerBase.py
+All functions are in JamfUploaderLib/JamfComputerStaticGroupUploaderBase.py
 """
 
 import os.path
@@ -28,20 +27,27 @@ import sys
 # imports require noqa comments for E402
 sys.path.insert(0, os.path.dirname(__file__))
 
-from JamfUploaderLib.JamfPackageRecalculatorBase import (  # noqa: E402
-    JamfPackageRecalculatorBase,
+from JamfUploaderLib.JamfComputerStaticGroupUploaderBase import (  # pylint: disable=import-error, wrong-import-position
+    JamfComputerStaticGroupUploaderBase,
 )
 
-__all__ = ["JamfPackageRecalculator"]
+__all__ = ["JamfComputerStaticGroupUploader"]
 
 
-class JamfPackageRecalculator(JamfPackageRecalculatorBase):
-    description = "A processor for AutoPkg that will force a recalculation of cloud distribution point inventory on a Jamf Pro server."
+class JamfComputerStaticGroupUploader(JamfComputerStaticGroupUploaderBase):
+    """Processor to read an API object"""
+
+    description = (
+        "A processor for AutoPkg that will upload a computer group (smart or "
+        "static) to a Jamf Cloud or on-prem server."
+    )
 
     input_variables = {
         "JSS_URL": {
             "required": True,
-            "description": "URL to a Jamf Pro server that the API user has write access to.",
+            "description": "URL to a Jamf Pro server that the API user has write access "
+            "to, optionally set as a key in the com.github.autopkg "
+            "preference file.",
         },
         "API_USERNAME": {
             "required": False,
@@ -65,12 +71,45 @@ class JamfPackageRecalculator(JamfPackageRecalculatorBase):
             "description": "Secret associated with the Client ID, optionally set as a key in "
             "the com.github.autopkg preference file.",
         },
+        "computergroup_name": {
+            "required": False,
+            "description": "Computer Group name",
+            "default": "",
+        },
+        "group_description": {
+            "required": False,
+            "description": "Group description",
+            "default": "Created by JamfUploader",
+        },
+        "replace_group": {
+            "required": False,
+            "description": "Overwrite an existing Computer Group if True.",
+            "default": False,
+        },
+        "clear_assignments": {
+            "required": False,
+            "description": "Clear assignments in an existing Computer Group if True.",
+            "default": False,
+        },
+        "sleep": {
+            "required": False,
+            "description": "Pause after running this processor for specified seconds.",
+            "default": "0",
+        },
+        "max_tries": {
+            "required": False,
+            "description": (
+                "Maximum number of attempts to upload the account. "
+                "Must be an integer between 1 and 10."
+            ),
+            "default": "5",
+        },
     }
 
     output_variables = {
-        "jamfpackagerecalculator_summary_result": {
+        "jamfcomputerstaticgroupuploader_summary_result": {
             "description": "Description of interesting results.",
-        }
+        },
     }
 
     def main(self):
@@ -80,5 +119,5 @@ class JamfPackageRecalculator(JamfPackageRecalculatorBase):
 
 
 if __name__ == "__main__":
-    PROCESSOR = JamfPackageRecalculator()
+    PROCESSOR = JamfComputerStaticGroupUploader()
     PROCESSOR.execute_shell()

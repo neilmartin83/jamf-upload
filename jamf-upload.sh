@@ -46,6 +46,8 @@ Valid object types:
     restriction | softwarerestriction
     scope
     statechange
+    staticcomputergroup
+    staticmobiledevicegroup
     script
     slack
     teams
@@ -306,6 +308,13 @@ Software Restriction Upload arguments:
     --key X=Y               Substitutable values in the template. Multiple values can be supplied
     --replace               Replace existing item
 
+Static Computer Group Upload arguments:
+    --name <string>         The name
+    --description <string>  The description
+    --clear                 Clear existing group memberships instead of retaining them 
+                            when updating an existing group
+    --replace               Replace existing item
+
 READ OPTIONS
 
 API Object Read arguments:
@@ -543,6 +552,10 @@ elif [[ $object == "scope" ]]; then
     processor="JamfScopeAdjuster"
 elif [[ $object == "script" ]]; then
     processor="JamfScriptUploader"
+elif [[ $object == "staticcomputergroup" ]]; then
+    processor="JamfComputerStaticGroupUploader"
+elif [[ $object == "staticmobiledevicegroup" ]]; then
+    processor="JamfMobileDeviceStaticGroupUploader"
 elif [[ $object == "jira" ]]; then
     processor="JamfUploaderJiraIssueCreator"
 elif [[ $object == "slack" ]]; then
@@ -693,7 +706,7 @@ while test $# -gt 0 ; do
                 if plutil -replace replace_category -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_category='True' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfComputerGroupUploader" || $processor == "JamfMobileDeviceGroupUploader" ]]; then
+            elif [[ $processor == "JamfComputerGroupUploader" || $processor == "JamfMobileDeviceGroupUploader" || $processor == "JamfComputerStaticGroupUploader" || $processor == "JamfMobileDeviceStaticGroupUploader" ]]; then
                 if plutil -replace replace_group -string "True" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote replace_group='True' into $temp_processor_plist"
                 fi
@@ -765,7 +778,7 @@ while test $# -gt 0 ; do
                 if plutil -replace category_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote category_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfComputerGroupUploader" || $processor == "JamfComputerGroupDeleter" ]]; then
+            elif [[ $processor == "JamfComputerGroupUploader" || $processor == "JamfComputerGroupDeleter" || $processor == "JamfComputerStaticGroupUploader" ]]; then
                 if plutil -replace computergroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote computergroup_name='$1' into $temp_processor_plist"
                 fi
@@ -793,7 +806,7 @@ while test $# -gt 0 ; do
                 if plutil -replace mobiledeviceapp_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote mobiledeviceapp_name='$1' into $temp_processor_plist"
                 fi
-            elif [[ $processor == "JamfMobileDeviceGroupUploader" ]]; then
+            elif [[ $processor == "JamfMobileDeviceGroupUploader" || $processor == "JamfMobileDeviceStaticGroupUploader" ]]; then
                 if plutil -replace mobiledevicegroup_name -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote mobiledevicegroup_name='$1' into $temp_processor_plist"
                 fi
@@ -926,6 +939,13 @@ while test $# -gt 0 ; do
                 fi
             fi
             ;;
+        --clear)
+            if [[ $processor == "JamfComputerStaticGroupUploader" || $processor == "JamfMobileDeviceStaticGroupUploader" ]]; then
+                if plutil -replace clear_assignments -string "True" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote clear_assignments='True' into $temp_processor_plist"
+                fi
+            fi
+            ;;
         --payload)
             shift
             if [[ $processor == "JamfComputerProfileUploader" ]]; then
@@ -979,6 +999,10 @@ while test $# -gt 0 ; do
             if [[ $processor == "JamfComputerProfileUploader" || $processor == "JamfMobileDeviceProfileUploader" ]]; then
                 if plutil -replace profile_description -string "$1" "$temp_processor_plist"; then
                     echo "   [jamf-upload] Wrote profile_description='$1' into $temp_processor_plist"
+                fi
+            elif [[ $processor == "JamfComputerStaticGroupUploader" || $processor == "JamfMobileDeviceStaticGroupUploader" ]]; then
+                if plutil -replace group_description -string "$1" "$temp_processor_plist"; then
+                    echo "   [jamf-upload] Wrote group_description='$1' into $temp_processor_plist"
                 fi
             elif [[ $processor == "JamfExtensionAttributeUploader" || $processor == "JamfMobileDeviceExtensionAttributeUploader" ]]; then
                 if plutil -replace ea_description -string "$1" "$temp_processor_plist"; then

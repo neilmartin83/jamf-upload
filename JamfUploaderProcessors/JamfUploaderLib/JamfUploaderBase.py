@@ -62,6 +62,7 @@ class JamfUploaderBase(Processor):
             "cloud_ldap",
             "computer",
             "computer_extension_attribute",
+            "computer_group_v1",
             "computer_inventory_collection_settings",
             "computer_prestage",
             "device_communication_settings",
@@ -85,6 +86,7 @@ class JamfUploaderBase(Processor):
             "managed_software_updates_update_statuses",
             "mobile_device",
             "mobile_device_extension_attribute_v1",
+            "mobile_device_group_v1",
             "mobile_device_prestage",
             "oauth",
             "package_v1",
@@ -92,11 +94,15 @@ class JamfUploaderBase(Processor):
             "script",
             "self_service_settings",
             "self_service_plus_settings",
+            "smart_computer_group",
             "smart_computer_group_membership",
+            "smart_mobile_device_group",
             "smart_mobile_device_group_membership",
             "smtp_server_settings",
             "sso_cert_command",
             "sso_settings",
+            "static_computer_group",
+            "static_mobile_device_group",
             "token",
             "volume_purchasing_location",
         ):
@@ -128,8 +134,6 @@ class JamfUploaderBase(Processor):
             "restricted_software",
         ):
             return "classic"
-        elif object_type == "package_upload":
-            return "dbfileupload"
         elif object_type in (
             "baseline",
             "benchmark",
@@ -174,6 +178,7 @@ class JamfUploaderBase(Processor):
             "computer": "api/preview/computers",
             "computer_extension_attribute": "api/v1/computer-extension-attributes",
             "computer_group": "JSSResource/computergroups",
+            "computer_group_v1": "api/v1/computer-groups",
             "computer_inventory_collection_settings": (
                 "api/v1/computer-inventory-collection-settings"
             ),
@@ -218,13 +223,13 @@ class JamfUploaderBase(Processor):
             "mobile_device_extension_attribute": "JSSResource/mobiledeviceextensionattributes",
             "mobile_device_extension_attribute_v1": "api/v1/mobile-device-extension-attributes",
             "mobile_device_group": "JSSResource/mobiledevicegroups",
+            "mobile_device_group_v1": "api/v1/mobile-device-groups",
             "mobile_device_prestage": "api/v1/mobile-device-prestages",
             "network_segment": "JSSResource/networksegments",
             "oauth": "api/v1/oauth/token",
             "os_x_configuration_profile": "JSSResource/osxconfigurationprofiles",
             "package": "JSSResource/packages",
             "package_v1": "api/v1/packages",
-            "package_upload": "dbfileupload",
             "patch_policy": "JSSResource/patchpolicies",
             "patch_software_title": "JSSResource/patchsoftwaretitles",
             "platform_api_token": "auth/token",
@@ -236,13 +241,17 @@ class JamfUploaderBase(Processor):
             "self_service_settings": "api/v1/self-service/settings",
             "self_service_plus_settings": "api/v1/self-service-plus/settings",
             "script": "api/v1/scripts",
+            "smart_computer_group": "api/v2/computer-groups/smart-groups",
             "smart_computer_group_membership": "api/v2/computer-groups/smart-group-membership",
+            "smart_mobile_device_group": ("api/v1/mobile-device-groups/smart-groups"),
             "smart_mobile_device_group_membership": (
                 "api/v1/mobile-device-groups/smart-group-membership"
             ),
             "smtp_server_settings": "api/v2/smtp-server",
             "sso_cert_command": "api/v2/sso/cert",
             "sso_settings": "api/v3/sso",
+            "static_computer_group": "api/v2/computer-groups/static-groups",
+            "static_mobile_device_group": ("api/v1/mobile-device-groups/static-groups"),
             "token": "api/v1/auth/token",
             "volume_purchasing_location": "api/v1/volume-purchasing-locations",
         }
@@ -338,6 +347,8 @@ class JamfUploaderBase(Processor):
             "managed_software_updates_available_updates": "availableUpdates",
             "managed_software_updates_plans": "planUuid",
             "managed_software_updates_plans_events": "id",
+            "static_mobile_device_group": "groupName",
+            "smart_mobile_device_group": "groupName",
         }
 
         if object_type in object_type_namekeys:
@@ -345,6 +356,19 @@ class JamfUploaderBase(Processor):
         else:
             namekey = "name"
         return namekey
+
+    def get_idkey(self, object_type):
+        """Return the ID key that identifies the object"""
+        object_type_idkeys = {
+            "group": "groupPlatformId",
+            "smart_mobile_device_group": "groupId",
+            "static_mobile_device_group": "groupId",
+        }
+        if object_type in object_type_idkeys:
+            idkey = object_type_idkeys[object_type]
+        else:
+            idkey = "id"
+        return idkey
 
     def get_namekey_path(self, object_type, namekey):
         """Return the namekey path in Xpath format"""
@@ -790,21 +814,17 @@ class JamfUploaderBase(Processor):
         """
         Build a curl command based on request type (GET, POST, PUT, PATCH, DELETE).
 
-        This function handles 5 different API types:
+        This function handles 4 different API types:
         1. classic: The Jamf Pro Classic API. These endpoints are under the 'JSSResource' URL.
         2. jpapi: The Jamf Pro API. These endpoints are under the 'api'/'uapi' URL.
         3. platform: Jamf Platform API.
-        4. dbfileupload: The Jamf Pro dbfileupload endpoint, for uploading packages (v1).
-        5. none: URLs that do not require authentication, for example ics.services.jamfcloud.com.
+        4. none: URLs that do not require authentication, for example ics.services.jamfcloud.com.
 
         For the Jamf Pro API and Classic API, basic authentication is used to obtain a
         bearer token, which we write to a file along with its expiry datetime.
         Subsequent requests to the same URL use the bearer token until it expires.
         Jamf Pro versions older than 10.35 use basic auth for all Classic API requests.
-        The dbfileupload endpoint also uses basic auth.
         The Jamf Platform API uses OAuth 2.0 for authentication.
-        The legacy/packages endpoint uses a session ID and separate authentication token.
-        This is generated by the JamfPackageUploader processor.
         """
         tmp_dir = self.make_tmp_dir(jamf_url=url)
         headers_file = os.path.join(tmp_dir, "curl_headers_from_jamf_upload.txt")
@@ -842,7 +862,6 @@ class JamfUploaderBase(Processor):
         if api_type not in (
             "classic",
             "jpapi",
-            "dbfileupload",
             "platform",
             "none",
         ):
@@ -856,13 +875,7 @@ class JamfUploaderBase(Processor):
             raise ProcessorError(f"ERROR: HTTP method {request} not supported")
 
         # operations for classic and jpapi
-        if api_type == "classic" or api_type == "jpapi" or api_type == "dbfileupload":
-
-            # check that we have either a token or credentials
-            if endpoint_type == "dbfileupload" and not enc_creds:
-                raise ProcessorError(
-                    "No credentials supplied for dbfileupload endpoint"
-                )
+        if api_type == "classic" or api_type == "jpapi":
 
             # Jamf Pro API authentication headers
             if enc_creds:
@@ -883,9 +896,8 @@ class JamfUploaderBase(Processor):
                     "No existing cookie found - starting new session", verbose_level=2
                 )
 
-            # all endpoints except the JCDS endpoint can be specified silent with show-error
-            if endpoint_type != "jcds":
-                curl_cmd.extend(["--silent", "--show-error"])
+            # all endpoints can be specified silent with show-error
+            curl_cmd.extend(["--silent", "--show-error"])
 
             # icon download
             if endpoint_type == "icon_get":
@@ -895,14 +907,11 @@ class JamfUploaderBase(Processor):
             # By default, we obtain json as its easier to parse. However,
             # some endpoints (For example the 'patchsoftwaretitle' endpoint)
             # do not return complete json, so we have to get the xml instead.
-            elif (request == "GET" or request == "DELETE") and endpoint_type != "jcds":
+            elif request == "GET" or request == "DELETE":
                 if endpoint_type == "patch_software_title" or accept_header == "xml":
                     curl_cmd.extend(["--header", "Accept: application/xml"])
                 else:
                     curl_cmd.extend(["--header", "Accept: application/json"])
-            # for uploading a package we need to return JSON
-            elif request == "POST" and endpoint_type == "package":
-                curl_cmd.extend(["--header", "Accept: application/json"])
 
             # package upload (Jamf Pro API)
             elif endpoint_type == "package_v1":
@@ -1024,13 +1033,7 @@ class JamfUploaderBase(Processor):
         self.output(f"Output file is: {output_file}", verbose_level=3)
 
         # write session for jamf API requests
-        if (
-            "/api/" in url
-            or "/uapi/" in url
-            or "JSSResource" in url
-            or endpoint_type == "package_upload"
-            or endpoint_type == "jcds"
-        ):
+        if "/api/" in url or "/uapi/" in url or "JSSResource" in url:
             curl_cmd.extend(["--cookie-jar", cookie_jar])
 
             # look for existing session

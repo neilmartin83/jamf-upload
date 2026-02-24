@@ -207,15 +207,12 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         },
         "jcds_mode": {
             "required": False,
-            "description": (
-                "This option is no longer functional. "
-                "A warning message is displayed if set."
-            ),
+            "description": ("This option is no longer functional. "),
             "default": "False",
         },
         "jcds2_mode": {
             "required": False,
-            "description": "Use jcds2 endpoint if True.",
+            "description": ("This option is no longer functional. "),
             "default": "False",
         },
         "aws_cdp_mode": {
@@ -241,7 +238,7 @@ class JamfPackageUploader(JamfPackageUploaderBase):
         },
         "recalculate": {
             "required": False,
-            "description": "Recalculate package metadata in JCDS.",
+            "description": "Recalculate cloud distribution point inventory.",
             "default": "False",
         },
         "sleep": {

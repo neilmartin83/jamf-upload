@@ -190,15 +190,15 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
 
         self.output("Deleting package...")
 
-        object_type = "package"
-        url = f"{jamf_url}/{self.api_endpoints(object_type)}/id/{object_id}"
+        object_type = "package_v1"
+        url = f"{jamf_url}/{self.api_endpoints(object_type)}/{object_id}"
 
         count = 0
         while True:
             count += 1
             self.output(f"Package delete attempt {count}", verbose_level=2)
             request = "DELETE"
-            r = self.curl(api_type="classic", request=request, url=url, token=token)
+            r = self.curl(api_type="jpapi", request=request, url=url, token=token)
 
             # check HTTP response
             if self.status_check(r, "Package", object_id, request) == "break":
@@ -311,7 +311,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         except (ValueError, TypeError):
             max_tries = 5
 
-        object_type = "package"
+        object_type = "package_v1"
 
         # Create a list of smb shares in tuples
         smb_shares = []
@@ -407,7 +407,7 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
         packages_in_policies = self.get_packages_in_policies(jamf_url, token)
 
         # get a list of all packages in Jamf Pro
-        packages = self.get_all_api_objects(jamf_url, "package", token)
+        packages = self.get_all_api_objects(jamf_url, "package_v1", token)
         if packages:
             csv_fields = ["pkg_id", "pkg_name", "used"]
             csv_data = []
@@ -419,17 +419,17 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 unused_in_titles = 0
                 unused_in_prestages = 0
                 if packages_in_policies:
-                    if package["name"] not in packages_in_policies:
+                    if package["packageName"] not in packages_in_policies:
                         unused_in_policies = 1
                 else:
                     unused_in_policies = 1
                 if packages_in_titles:
-                    if package["name"] not in packages_in_titles:
+                    if package["packageName"] not in packages_in_titles:
                         unused_in_titles = 1
                 else:
                     unused_in_titles = 1
                 if packages_in_prestages:
-                    if package["name"] not in packages_in_prestages:
+                    if package["packageName"] not in packages_in_prestages:
                         unused_in_prestages = 1
                 else:
                     unused_in_prestages = 1
@@ -438,20 +438,20 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                     and unused_in_titles == 1
                     and unused_in_prestages == 1
                 ):
-                    unused_packages[package["id"]] = package["name"]
+                    unused_packages[package["id"]] = package["packageName"]
                     csv_data.append(
                         {
                             "pkg_id": package["id"],
-                            "pkg_name": package["name"],
+                            "pkg_name": package["packageName"],
                             "used": "false",
                         }
                     )
-                elif package["name"] not in used_packages:
-                    used_packages[package["id"]] = package["name"]
+                elif package["packageName"] not in used_packages:
+                    used_packages[package["id"]] = package["packageName"]
                     csv_data.append(
                         {
                             "pkg_id": package["id"],
-                            "pkg_name": package["name"],
+                            "pkg_name": package["packageName"],
                             "used": "true",
                         }
                     )
@@ -509,7 +509,9 @@ class JamfUnusedPackageCleanerBase(JamfUploaderBase):
                 # delete the packages
                 for pkg_id, pkg_name in unused_packages.items():
                     self.output(f"Deleting {pkg_name}...")
-                    status_code = self.delete_object(jamf_url, "package", pkg_id, token)
+                    status_code = self.delete_object(
+                        jamf_url, "package_v1", pkg_id, token
+                    )
                     # Process for SMB shares if defined
                     if len(smb_shares) > 0:
                         self.output(
